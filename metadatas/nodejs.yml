@@ -37,9 +37,10 @@ scripts:
     
   build: |
     cd ${REPO_DIR}
-    [ -d ${BUILD_DIR}/node_modules ] && mv ${BUILD_DIR}/node_modules . 
+    [ -d ${BUILD_DIR}/node_modules ] && cp -fr ${BUILD_DIR}/node_modules . 
     npm install
-    [ -d ${BUILD_DIR} ] && cp -r node_modules ${BUILD_DIR}/
+    [ -d ${BUILD_DIR} ] && cp -fr node_modules ${BUILD_DIR}/
+    true
 
   start: |
     cd ${REPO_DIR}
