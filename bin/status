@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+
+if(process.argv.length < 3){
+  throw new Error('Usage: $ status /path/to/metadata.yml');
+}
+
+var Megagear = require('../index');
+var megagear = new Megagear(process.argv[2]);
+
+megagear.status(process.env, function(err, code){
+  if(err) {
+    console.error(err.message);
+    process.exit(code);
+  }
+});

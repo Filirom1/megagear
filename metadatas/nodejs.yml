@@ -1,0 +1,54 @@
+name: node
+persistent: false
+description: Node.js is a platform built on Chrome's JavaScript runtime for easily building fast, scalable network applications. Node.js is perfect for data-intensive real-time applications that run across distributed devices.
+license: The PHP License, version 3.0
+license-url: http://www.php.net/license/3_0.txt
+vendor: php.net
+cartridge-version: 0.0.1
+cartridge-vendor: filirom1
+cartridge-repo: http://github.com/Filirom1/megagear-apache-php.git
+params:
+  - APP_NAME
+  - GEAR_UUID
+  - VERSION # Version of nodejs to download
+  - IP
+  - PORT
+  - TEMPLATE_DIR
+  - TMP_DIR
+  - DATA_DIR # only for persistent storage.
+  - BUILD_DIR # persistent storage only used for build
+  - ADMIN_DIR
+  - APP_DIR 
+  - REPO_DIR
+env:
+  PATH: ${ADMIN_DIR}/node-v${VERSION}-linux-x86/bin:${PATH}
+http-routing:
+  - frontend: "/"
+    backend: ${IP}:${PORT}
+scaling:
+  min:  1
+  max: -1
+scripts:
+  admindo: |
+    cd ${ADMIN_DIR}
+    wget http://nodejs.org/dist/v${VERSION}/node-v${VERSION}-linux-x86.tar.gz
+    tar xzf node-v${VERSION}-linux-x86.tar.gz
+    rm -f node-v${VERSION}-linux-x86.tar.gz
+    
+  build: |
+    cd ${REPO_DIR}
+    [ -d ${BUILD_DIR}/node_modules ] && mv ${BUILD_DIR}/node_modules . 
+    npm install
+    [ -d ${BUILD_DIR} ] && cp -r node_modules ${BUILD_DIR}/
+
+  start: |
+    cd ${REPO_DIR}
+    npm start
+
+  status: |
+    if output=$(curl http://${IP}:${PORT}/ 2>&1 )
+    then
+      exit 0
+    else
+      exit 1
+    fi
