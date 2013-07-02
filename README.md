@@ -2,12 +2,12 @@
 
 Create dir structure
 
-    mkdir -p /tmp/gear/{template,tmp,data,build,admin,app,repo}
+    mkdir -p /tmp/instance/{template,tmp,data,build,admin,app,repo}
 
 Create a dummy nodejs app
 
     sudo npm i -g express
-    cd /tmp/gear/repo
+    cd /tmp/instance/repo
     express
 
 How to use
@@ -16,19 +16,24 @@ How to use
     cd megagear
 
     export APP_NAME="test"
-    export GEAR_UUID="test"
     export VERSION="0.10.0"
     export IP="127.0.0.1"
     export PORT="1234"
-    export TEMPLATE_DIR="/tmp/gear/template"
-    export TMP_DIR="/tmp/gear/tmp"
-    export DATA_DIR="/tmp/gear/data"
-    export BUILD_DIR="/tmp/gear/build"
-    export ADMIN_DIR="/tmp/gear/admin"
-    export APP_DIR="/tmp/gear/app"
-    export REPO_DIR="/tmp/gear/repo"
-    ./bin/admindo metadatas/nodejs.yml
-    ./bin/build metadatas/nodejs.yml
-    ./bin/start metadatas/nodejs.yml &
-    ./bin/status metadatas/nodejs.yml
+    export USERNAME="TOTO"
+    export PASSWORD="T0T0"
+    export TEMPLATE_DIR="/tmp/instance/template"
+    export TMP_DIR="/tmp/instance/tmp"
+    export DATA_DIR="/tmp/instance/data"
+    export BUILD_DIR="/tmp/instance/build"
+    export ADMIN_DIR="/tmp/instance/admin"
+    export REPO_DIR="/tmp/instance/repo"
+    export INSTANCE_DIR="/tmp/instance/app"
+    export INSTANCE_NUMBER="0"
+    export INSTANCE_UUID="test"
+    export INSTANCE_GROUP_NAME="web"
+    export INSTANCE_GROUP_HOSTS="localhost:1234"
+    ./bin/control admindo metadatas/nodejs.yml
+    ./bin/control build metadatas/nodejs.yml
+    ./bin/control start metadatas/nodejs.yml &
+    ./bin/control status metadatas/nodejs.yml
 

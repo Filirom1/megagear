@@ -4,22 +4,16 @@ description: Node.js is a platform built on Chrome's JavaScript runtime for easi
 license: The PHP License, version 3.0
 license-url: http://www.php.net/license/3_0.txt
 vendor: php.net
-cartridge-version: 0.0.1
-cartridge-vendor: filirom1
-cartridge-repo: http://github.com/Filirom1/megagear-apache-php.git
+metadata-version: 0.0.1
+metadata-vendor: filirom1
+metadata-repo: http://github.com/Filirom1/megagear-apache-php.git
 params:
-  - APP_NAME
-  - GEAR_UUID
-  - VERSION # Version of nodejs to download
-  - IP
-  - PORT
-  - TEMPLATE_DIR
-  - TMP_DIR
-  - DATA_DIR # only for persistent storage.
-  - BUILD_DIR # persistent storage only used for build
-  - ADMIN_DIR
-  - APP_DIR 
-  - REPO_DIR
+  - VERSION              # Version of mongodb to download
+  - IP                   # Instance IP
+  - PORT                 # Instance main port
+  - BUILD_DIR            # persistent storage only used for build: ~/build
+  - ADMIN_DIR            # For sysadmin it will be /opt, for downloaded metadata it will be ~/opt
+  - REPO_DIR             # source directory : ~/repo
 env:
   PATH: ${ADMIN_DIR}/node-v${VERSION}-linux-x86/bin:${PATH}
 http-routing:

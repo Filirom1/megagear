@@ -14,12 +14,6 @@ function Megagear(metadataPath){
   this.metadata = require(path.resolve(metadataPath));
 }
 
-['admindo', 'build', 'start', 'status'].forEach(function(action){
-  Megagear.prototype[action] = function(params, cb){
-    this.exec(params, action, cb);
-  };
-});
-
 Megagear.prototype.exec = function(params, action, cb){
   var err;
   if((err = this.missingParams(params))) {

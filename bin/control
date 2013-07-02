@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+
+if(process.argv.length < 3){
+  throw new Error('Usage: $ control start /path/to/metadata.yml');
+}
+
+var action = process.argv[2];
+var metadataPath = process.argv[3];
+
+var Megagear = require('../index');
+var megagear = new Megagear(metadataPath);
+
+megagear.exec(process.env, action, function(err, code){
+  if(err) console.error(err);
+  process.exit(code);
+});
