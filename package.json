@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "underscore": "~1.4.4",
-    "js-yaml": "~2.1.0"
+    "js-yaml": "~2.1.0",
+    "ejs": "~0.8.4"
   }
 }

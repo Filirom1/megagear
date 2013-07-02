@@ -1,0 +1,103 @@
+name: mongodb
+persistent: true
+description: MongoDB is a scalable, high-performance, open source NoSQL database.
+license: AGPL v3
+license-url: http://www.mongodb.org/about/licensing/ 
+vendor: 10gen
+metadata-version: 0.0.1
+metadata-vendor: filirom1
+metadata-repo: http://github.com/Filirom1/megagear-mongodb.git
+params:
+  - APP_NAME             # Application name
+  - VERSION              # Version of mongodb to download
+  - IP                   # Instance IP
+  - PORT                 # Instance main port
+  - USERNAME                 # user name shared in the instance group
+  - PASSWORD             # password shared in this instance group
+  - TEMPLATE_DIR         # Directory where the template is generated: ~/template
+  - TMP_DIR              # Directory for temporary files: ~/tmp
+  - DATA_DIR             # only for persistent storage: ~/data
+  - BUILD_DIR            # persistent storage only used for build: ~/build
+  - ADMIN_DIR            # For sysadmin it will be /opt, for downloaded metadata it will be ~/opt
+  - REPO_DIR             # source directory : ~/repo
+  - INSTANCE_DIR         # directory for everything else: ~/instance
+  - INSTANCE_NUMBER      # Start at 0 and is incremented each time the number of instances scale up
+  - INSTANCE_UUID        # Unique UUID for this instance
+  - INSTANCE_GROUP_NAME  # name for the scaled instances
+  - INSTANCE_GROUP_HOSTS # list of scaled ${IP}:${PORT},${IP2}:${PORT2},...
+env:
+  PATH: ${ADMIN_DIR}/mongodb-linux-i686-${VERSION}/bin:${PATH}
+export:
+  CONNECTION_URL_${INSTANCE_GROUP_NAME}: ${INSTANCE_GROUP_HOSTS}
+scaling:
+  min: 3
+  max: 3
+scripts:
+  admindo: |
+    cd ${ADMIN_DIR}
+    wget http://fastdl.mongodb.org/linux/mongodb-linux-i686-${VERSION}.tgz
+    tar xzf mongodb-linux-i686-${VERSION}.tgz
+    rm -f mongodb-linux-i686-${VERSION}.tgz
+    
+  start: |
+    mkdir -p ${INSTANCE_DIR}/pid
+    mkdir -p ${INSTANCE_DIR}/socket
+    mkdir -p ${INSTANCE_DIR}/run
+    mkdir -p ${INSTANCE_DIR}/etc
+
+    mega-template ${TEMPLATE_DIR}/mongodb.conf.ejs > ${INSTANCE_DIR}/etc/mongodb.conf
+    echo "Attempting to repair MongoDB ..."
+    mongod --auth --nojournal --smallfiles --repair -f ${INSTANCE_DIR}/etc/mongodb.conf 
+    echo "Starting MongoDB ..."
+    mongod --auth --nojournal --smallfiles --quiet -f ${INSTANCE_DIR}/etc/mongodb.conf 
+
+  post-start: |
+    [[ "${INSTANCE_NUMBER}" != "0" ]] && exit 0
+    # Only works the first time when the user is not yet created
+    mongo --host ${IP} --port ${PORT} admin << EOF
+      rs.initiate({
+        _id: 'rs',
+        members: [{
+          _id: 0,
+          host: ${IP}:${PORT}
+        }]
+      })
+      db.addUser("${USERNAME}", "${PASSWORD}")
+      db.auth("${USERNAME}", "${PASSWORD}")
+      db.system.users.find()
+      use ${APP_NAME}
+      db.megagear.save({application: "${APP_NAME}"})
+      db.addUser("${USERNAME}", "${PASSWORD}")
+      exit
+      # TODO wait until master is elected
+      sleep 5
+    EOF
+
+  IS_MASTER: |
+    mongo --host ${IP} --port ${PORT} --username ${USERNAME} --password ${PASSWORD} admin --eval "db.isMaster().ismaster"
+
+  on-peer-start: |
+    [[ "${IS_MASTER}" != "true" ]] && exit 0
+    mongo --host ${IP} --port ${PORT} admin << EOF
+      db.auth("${USERNAME}", "${PASSWORD}")
+      rs.add("${PEER_IP}:${PEER_PORT}");
+      exit
+    EOF
+
+  on-peer-stop: |
+    [[ "${IS_MASTER}" != "true" ]] && exit 0
+    mongo --host ${IP} --port ${PORT} admin << EOF
+      db.auth("${USERNAME}", "${PASSWORD}")
+      rs.remove("${PEER_IP}:${PEER_PORT}");
+      exit
+    EOF
+
+  status: |
+    if [ -f ${INSTANCE_DIR}/pid/mongodb.pid ]; then
+      mongodb_pid=`cat ${INSTANCE_DIR}/pid/mongodb.pid 2> /dev/null`
+      if `ps --pid $mongodb_pid 2>&1 | grep mongod > /dev/null 2>&1`
+      then
+        return 0
+      fi
+    fi
+    return 1

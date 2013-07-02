@@ -1,0 +1,15 @@
+#!/usr/bin/env node
+
+if(process.argv.length < 3){
+  throw new Error('Usage: $ mega-template /path/to/template.ejs');
+}
+
+var fs = require('fs');
+var Path = require('path');
+var ejs = require('ejs');
+
+var templatePath = process.argv[2];
+
+var template = fs.readFileSync(Path.resolve(templatePath)).toString();
+
+console.log(ejs.render(template, process.env));
