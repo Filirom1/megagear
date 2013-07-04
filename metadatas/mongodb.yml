@@ -12,27 +12,27 @@ params:
   - VERSION              # Version of mongodb to download
   - IP                   # Instance IP
   - PORT                 # Instance main port
-  - USERNAME                 # user name shared in the instance group
+  - USERNAME             # user name shared in the instance group
   - PASSWORD             # password shared in this instance group
   - TEMPLATE_DIR         # Directory where the template is generated: ~/template
-  - TMP_DIR              # Directory for temporary files: ~/tmp
   - DATA_DIR             # only for persistent storage: ~/data
-  - BUILD_DIR            # persistent storage only used for build: ~/build
   - ADMIN_DIR            # For sysadmin it will be /opt, for downloaded metadata it will be ~/opt
-  - REPO_DIR             # source directory : ~/repo
   - INSTANCE_DIR         # directory for everything else: ~/instance
   - INSTANCE_NUMBER      # Start at 0 and is incremented each time the number of instances scale up
   - INSTANCE_UUID        # Unique UUID for this instance
   - INSTANCE_GROUP_NAME  # name for the scaled instances
   - INSTANCE_GROUP_HOSTS # list of scaled ${IP}:${PORT},${IP2}:${PORT2},...
-env:
-  PATH: ${ADMIN_DIR}/mongodb-linux-i686-${VERSION}/bin:${PATH}
-export:
-  CONNECTION_URL_${INSTANCE_GROUP_NAME}: ${INSTANCE_GROUP_HOSTS}
 scaling:
   min: 3
   max: 3
 scripts:
+  env: |
+    echo PATH=${ADMIN_DIR}/mongodb-linux-i686-${VERSION}/bin:${PATH}
+    echo KEY=`echo ${PASSWORD} | base64`
+
+  export: |
+    echo CONNECTION_URL_${INSTANCE_GROUP_NAME}=${INSTANCE_GROUP_HOSTS}
+
   admindo: |
     cd ${ADMIN_DIR}
     wget http://fastdl.mongodb.org/linux/mongodb-linux-i686-${VERSION}.tgz
@@ -44,6 +44,9 @@ scripts:
     mkdir -p ${INSTANCE_DIR}/socket
     mkdir -p ${INSTANCE_DIR}/run
     mkdir -p ${INSTANCE_DIR}/etc
+
+    mega-template ${TEMPLATE_DIR}/key.ejs > ${INSTANCE_DIR}/etc/key
+    chmod 600 ${INSTANCE_DIR}/etc/key
 
     mega-template ${TEMPLATE_DIR}/mongodb.conf.ejs > ${INSTANCE_DIR}/etc/mongodb.conf
     echo "Attempting to repair MongoDB ..."
@@ -59,9 +62,15 @@ scripts:
         _id: 'rs',
         members: [{
           _id: 0,
-          host: ${IP}:${PORT}
+          host: "${IP}:${PORT}"
         }]
       })
+    EOF
+
+    # TODO wait until master is elected
+    sleep 5
+
+    mongo --host ${IP} --port ${PORT} admin << EOF
       db.addUser("${USERNAME}", "${PASSWORD}")
       db.auth("${USERNAME}", "${PASSWORD}")
       db.system.users.find()
@@ -69,8 +78,6 @@ scripts:
       db.megagear.save({application: "${APP_NAME}"})
       db.addUser("${USERNAME}", "${PASSWORD}")
       exit
-      # TODO wait until master is elected
-      sleep 5
     EOF
 
   IS_MASTER: |
@@ -78,16 +85,14 @@ scripts:
 
   on-peer-start: |
     [[ "${IS_MASTER}" != "true" ]] && exit 0
-    mongo --host ${IP} --port ${PORT} admin << EOF
-      db.auth("${USERNAME}", "${PASSWORD}")
+    mongo --host ${IP} --port ${PORT} admin --username ${USERNAME} --password ${PASSWORD} << EOF
       rs.add("${PEER_IP}:${PEER_PORT}");
       exit
     EOF
 
   on-peer-stop: |
     [[ "${IS_MASTER}" != "true" ]] && exit 0
-    mongo --host ${IP} --port ${PORT} admin << EOF
-      db.auth("${USERNAME}", "${PASSWORD}")
+    mongo --host ${IP} --port ${PORT} admin --username ${USERNAME} --password ${PASSWORD} << EOF
       rs.remove("${PEER_IP}:${PEER_PORT}");
       exit
     EOF
@@ -101,3 +106,6 @@ scripts:
       fi
     fi
     return 1
+
+  bash: |
+    bash

@@ -19,18 +19,31 @@ Megagear.prototype.exec = function(params, action, cb){
   if((err = this.missingParams(params))) {
     return cb(err);
   }
-  var env = this.generateEnv(params);
-  var script = 'set -e \n' + this.metadata.scripts[action];
-  console.log(_.template(script, env, bashInterpolation));
-  var shell = childProcess.spawn('/bin/sh', ['-c', script], {env: env, stdio: 'inherit'});
-  shell.on('exit', function(code){
-    if(code !== 0) {
-      return cb(new Error('Exit code ' + code + ' != 0'), code);
-    }
-    cb();
+  var self = this;
+  var command = '/usr/bin/env';
+  childProcess.execFile(command, ['bash', '-c', this.metadata.scripts.env], {}, function(err, stdout){
+    var env = process.env;
+    stdout = stdout || '';
+    stdout.split('\n').forEach(function(line){
+      var arr = line.split('=');
+      if (arr.length < 2) return;
+      var key = arr[0].trim();
+      var value = arr[1].trim();
+      env[key] = value;
+    });
+
+    var script = self.metadata.scripts[action];
+    var args = ['bash', '-c', script];
+
+    var shell = childProcess.spawn(command, args, {env: env, stdio: 'inherit'});
+    shell.on('exit', function(code){
+      if(code !== 0) {
+        return cb(new Error('Exit code ' + code + ' != 0'), code);
+      }
+      cb();
+    });
   });
 };
-
 
 Megagear.prototype.missingParams = function(params){
   var diff = _.difference(this.metadata.params, Object.keys(params));
@@ -39,11 +52,10 @@ Megagear.prototype.missingParams = function(params){
   }
 };
 
-// union of process.env, metadata.params and generated metadata.env
-Megagear.prototype.generateEnv = function(params){
-  var env = _.extend({}, process.env, params);
-  _(this.metadata.env).forEach(function(value, key){
-    env[key] = _.template(value, env, bashInterpolation);
-  });
-  return env;
-};
+function debug(env, str){
+  if(process.env.DEBUG){
+    _(env).forEach(function(v, k){
+      console.log(k + '=' + v);
+    });
+  }
+}

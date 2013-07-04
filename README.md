@@ -18,13 +18,13 @@ Create a dummy nodejs app
     cd /tmp/instance/repo
     express
 
-    cd megagear
     export VERSION="0.10.0"
     export IP="127.0.0.1"
     export PORT="1234"
     export BUILD_DIR="/tmp/instance/build"
     export ADMIN_DIR="/tmp/instance/admin"
     export REPO_DIR="/tmp/instance/repo"
+    cd -
     ./bin/control admindo metadatas/nodejs.yml
     ./bin/control build metadatas/nodejs.yml
     ./bin/control start metadatas/nodejs.yml &
@@ -56,10 +56,9 @@ Create dir structure
     export DATA_DIR="/tmp/mongodb${INSTANCE_NUMBER}/data"
     export INSTANCE_DIR="/tmp/mongodb${INSTANCE_NUMBER}/instance"
     ./bin/control start metadatas/mongodb.yml &
+    sleep 3
     ./bin/control post-start metadatas/mongodb.yml
     ./bin/control IS_MASTER metadatas/mongodb.yml
-    PEER_IP=localhost PEER_PORT=27016 IS_MASTER=true ./bin/control on-peer-start metadatas/mongodb.yml
-    PEER_IP=localhost PEER_PORT=27017 IS_MASTER=true ./bin/control on-peer-start metadatas/mongodb.yml
     ./bin/control status metadatas/mongodb.yml
 
     export PORT="27016"
@@ -67,6 +66,7 @@ Create dir structure
     export DATA_DIR="/tmp/mongodb${INSTANCE_NUMBER}/data"
     export INSTANCE_DIR="/tmp/mongodb${INSTANCE_NUMBER}/instance"
     ./bin/control start metadatas/mongodb.yml &
+    sleep 3
     ./bin/control post-start metadatas/mongodb.yml
     ./bin/control IS_MASTER metadatas/mongodb.yml
     ./bin/control status metadatas/mongodb.yml
@@ -76,6 +76,14 @@ Create dir structure
     export DATA_DIR="/tmp/mongodb${INSTANCE_NUMBER}/data"
     export INSTANCE_DIR="/tmp/mongodb${INSTANCE_NUMBER}/instance"
     ./bin/control start metadatas/mongodb.yml &
+    sleep 3
     ./bin/control post-start metadatas/mongodb.yml
     ./bin/control IS_MASTER metadatas/mongodb.yml
     ./bin/control status metadatas/mongodb.yml
+
+    export PORT="27015"
+    export INSTANCE_NUMBER="0"
+    export DATA_DIR="/tmp/mongodb${INSTANCE_NUMBER}/data"
+    export INSTANCE_DIR="/tmp/mongodb${INSTANCE_NUMBER}/instance"
+    PEER_IP=localhost PEER_PORT=27016 IS_MASTER=true ./bin/control on-peer-start metadatas/mongodb.yml
+    PEER_IP=localhost PEER_PORT=27017 IS_MASTER=true ./bin/control on-peer-start metadatas/mongodb.yml

@@ -3,9 +3,11 @@
 bind_ip = <%= IP %>
 port = <%= PORT %>
 
-dbpath=<%= DATA_DIR %>/
+dbpath = <%= DATA_DIR %>/
 
-pidfilepath=<%= INSTANCE_DIR %>/pid/mongodb.pid
+pidfilepath = <%= INSTANCE_DIR %>/pid/mongodb.pid
+
+keyFile = <%= INSTANCE_DIR %>/etc/key
 
 # Enables periodic logging of CPU utilization and I/O wait
 cpu = false
@@ -63,6 +65,7 @@ noprealloc = true
 #mms-interval = <seconds>
 
 # Replication Options
+replSet = rs
 
 # in replicated mongo databases, specify here whether this is a slave or master
 #slave = true
