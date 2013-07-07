@@ -98,14 +98,7 @@ scripts:
     EOF
 
   status: |
-    if [ -f ${INSTANCE_DIR}/pid/mongodb.pid ]; then
-      mongodb_pid=`cat ${INSTANCE_DIR}/pid/mongodb.pid 2> /dev/null`
-      if `ps --pid $mongodb_pid 2>&1 | grep mongod > /dev/null 2>&1`
-      then
-        return 0
-      fi
-    fi
-    return 1
+    nc -z ${IP} ${PORT}
 
   bash: |
     bash

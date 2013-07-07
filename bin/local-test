@@ -1,0 +1,156 @@
+#!/usr/bin/env node
+
+if(process.argv.length < 3){
+  throw new Error('Usage: $ local-test /path/to/metadata.yml');
+}
+var metadataPath = process.argv[2];
+
+var fs = require('fs');
+var _ = require('underscore');
+var async = require('async');
+var Megagear = require('../index');
+var megagear = new Megagear(metadataPath);
+
+var scaleMin = megagear.metadata.scaling.min;
+var scaleMax = megagear.metadata.scaling.max;
+var scaleValue = scaleMin;
+
+var clusterEnv = _.extend({}, process.env, {
+  APP_NAME: 'test',
+  IP: 'localhost',
+  USERNAME: 'test',
+  PASSWORD: 't3st',
+  ADMIN_DIR:  mkdir('/tmp/megagear/admin'),
+  BUILD_DIR:  mkdir('/tmp/megagear/build'),
+  REPO_DIR:  mkdir('/tmp/megagear/repo'),
+  INSTANCE_GROUP_NAME: 'test',
+  INSTANCE_GROUP_HOSTS: _(scaleValue).range().map(function(instanceNumber){
+    return 'localhost:' + (30000 + instanceNumber)
+  }).join(',')
+});
+
+var instancesEnv = [];
+_(scaleValue).times(function(instanceNumber){
+  var homeDir = '/tmp/megagear/instance' + instanceNumber;
+  instancesEnv[instanceNumber] = _.extend({}, process.env, clusterEnv, {
+    PORT: 30000 + instanceNumber,
+    HOME:  mkdir(homeDir),
+    TEMPLATE_DIR:  metadataPath.replace(/.yml/, ''),
+    DATA_DIR:  mkdir(homeDir + '/data'),
+    INSTANCE_DIR:  mkdir(homeDir + '/instance'),
+    BUILD_DIR:  mkdir(homeDir + '/build'),
+    REPO_DIR:  mkdir(homeDir + '/repo'),
+    INSTANCE_UUID: 12345678 + instanceNumber,
+  });
+});
+
+var execOnce = {};
+var execPar = {};
+['admindo', 'build', 'start'].forEach(function(action){
+  ['pre-', '', 'post-'].forEach(function(prefix){
+    // if scrip is not defined, default to noop
+    if(!megagear.metadata.scripts[prefix + action]){
+      console.log(prefix + action, 'script not definied. Will be skipped');
+      execOnce[prefix + action] = function(cb){ cb(); }
+      execPar[prefix + action] = function(cb){ cb(); }
+      return 
+    }
+    execOnce[prefix + action] = function(cb){
+      console.log('exec once', prefix + action);
+      megagear.exec(clusterEnv, prefix + action, cb)
+    }
+    execPar[prefix + action] = function(cb){
+      async.each(instancesEnv, function(env, cb){
+        console.log('exec', prefix + action);
+        megagear.exec(env, prefix + action, cb)
+      }, cb);
+    }
+  });
+})
+
+execPar['populate-build-dir'] = function(cb){
+  console.log('populate-build-dir')
+  async.each(instancesEnv, function(env, cb){
+    fs.rmdir(env.BUILD_DIR, function(err){
+      if(err) return cb(err);
+      fs.symlink(clusterEnv.BUILD_DIR, env.BUILD_DIR, cb);
+    })
+  }, cb);
+};
+
+execPar['populate-repo-dir'] = function(cb){
+  console.log('populate-repo-dir')
+  async.each(instancesEnv, function(env, cb){
+    fs.rmdir(env.REPO_DIR, function(err){
+      if(err) return cb(err);
+      fs.symlink(clusterEnv.REPO_DIR, env.REPO_DIR, cb);
+    })
+  }, cb);
+};
+
+execPar['start-background'] = function(cb){
+  async.series([function(cb){
+    // start in the background
+    execPar['start'](function(){});
+    cb();
+  },function(cb){
+    // wait for processes to be bound on IP:PORT
+    async.each(instancesEnv, function(env, cb){
+      var tries = 0;
+      var success = false;
+      async.whilst(function(){
+        return success == false && tries < 20;
+      }, function(cb){
+        megagear.exec(env, 'status', function(err){
+          tries ++;
+          if(err){
+            return setTimeout(cb, 1000);
+          }
+          success = true;
+          cb();
+        });
+      }, cb);
+    }, cb);
+  }], cb);
+};
+
+execPar['on-peer-start'] = function(cb){
+  if(!megagear.metadata.scripts['on-peer-start']){
+    return cb();
+  };
+  async.each(instancesEnv, function(instanceEnv, cb){
+    var otherInstancesEnv = _(instancesEnv).without(instanceEnv);
+    async.each(otherInstancesEnv, function(otherInstanceEnv, cb){
+      var env = _.extend({}, instanceEnv);
+      otherInstanceEnv.forEach(function(value, key){
+        env['PEER_' + key] = value;
+      });
+      megagear.exec(env, 'on-peer-start', cb)
+    }, cb);
+  }, cb);
+};
+
+async.series([
+  execOnce['admindo'],
+  execOnce['pre-build'],
+  execOnce['build'],
+  execOnce['post-build'],
+  execPar['populate-build-dir'],
+  execPar['populate-repo-dir'],
+  execPar['pre-start'],
+  execPar['start-background'],
+  execPar['on-peer-start'],
+  execPar['post-start']
+], function(err){
+  if(err) throw err;
+  console.log('started');
+});
+
+function mkdir(path){
+  try{
+    fs.mkdirSync(path);
+  }catch(err){
+    console.error(err.message);
+  }
+  return path;
+}

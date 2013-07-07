@@ -12,17 +12,21 @@ module.exports = Megagear;
 
 function Megagear(metadataPath){
   this.metadata = require(path.resolve(metadataPath));
+
+  // setup defaults
+  this.metadata.scaling = this.metadata.scaling || {};
+  this.metadata.scaling.min = this.metadata.scaling.min || 1;
+  this.metadata.scaling.max = this.metadata.scaling.max || 1;
 }
 
-Megagear.prototype.exec = function(params, action, cb){
+Megagear.prototype.exec = function(env, action, cb){
   var err;
-  if((err = this.missingParams(params))) {
+  if((err = this.missingParams(env))) {
     return cb(err);
   }
   var self = this;
-  var command = '/usr/bin/env';
-  childProcess.execFile(command, ['bash', '-c', this.metadata.scripts.env], {}, function(err, stdout){
-    var env = process.env;
+  var command = '/bin/bash';
+  childProcess.execFile(command, ['-xc', this.metadata.scripts.env], {}, function(err, stdout){
     stdout = stdout || '';
     stdout.split('\n').forEach(function(line){
       var arr = line.split('=');
@@ -33,7 +37,7 @@ Megagear.prototype.exec = function(params, action, cb){
     });
 
     var script = self.metadata.scripts[action];
-    var args = ['bash', '-c', script];
+    var args = ['-xc', 'set -e\n' + script];
 
     var shell = childProcess.spawn(command, args, {env: env, stdio: 'inherit'});
     shell.on('exit', function(code){
