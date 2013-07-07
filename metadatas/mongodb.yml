@@ -35,7 +35,7 @@ scripts:
 
   admindo: |
     cd ${ADMIN_DIR}
-    wget http://fastdl.mongodb.org/linux/mongodb-linux-i686-${VERSION}.tgz
+    curl -s http://fastdl.mongodb.org/linux/mongodb-linux-i686-${VERSION}.tgz -o ${ADMIN_DIR}/mongodb-linux-i686-${VERSION}.tgz
     tar xzf mongodb-linux-i686-${VERSION}.tgz
     rm -f mongodb-linux-i686-${VERSION}.tgz
     
@@ -67,8 +67,10 @@ scripts:
       })
     EOF
 
-    # TODO wait until master is elected
-    sleep 5
+    while [ "`mongo --host ${IP} --port ${PORT} admin --eval 'db.isMaster().ismaster' | tail -n 1`" != "true" ]
+    do
+      sleep 1
+    done
 
     mongo --host ${IP} --port ${PORT} admin << EOF
       db.addUser("${USERNAME}", "${PASSWORD}")
@@ -81,17 +83,17 @@ scripts:
     EOF
 
   IS_MASTER: |
-    mongo --host ${IP} --port ${PORT} --username ${USERNAME} --password ${PASSWORD} admin --eval "db.isMaster().ismaster"
+    mongo --host ${IP} --port ${PORT} --username ${USERNAME} --password ${PASSWORD} admin --eval "db.isMaster().ismaster" | tail -n 1 | tr -d '\n' 
 
   on-peer-start: |
-    [[ "${IS_MASTER}" != "true" ]] && exit 0
+    [[ "${IS_MASTER}" != true ]] && exit 0
     mongo --host ${IP} --port ${PORT} admin --username ${USERNAME} --password ${PASSWORD} << EOF
       rs.add("${PEER_IP}:${PEER_PORT}");
       exit
     EOF
 
   on-peer-stop: |
-    [[ "${IS_MASTER}" != "true" ]] && exit 0
+    [[ "${IS_MASTER}" != true ]] && exit 0
     mongo --host ${IP} --port ${PORT} admin --username ${USERNAME} --password ${PASSWORD} << EOF
       rs.remove("${PEER_IP}:${PEER_PORT}");
       exit

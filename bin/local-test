@@ -41,6 +41,7 @@ _(scaleValue).times(function(instanceNumber){
     BUILD_DIR:  mkdir(homeDir + '/build'),
     REPO_DIR:  mkdir(homeDir + '/repo'),
     INSTANCE_UUID: 12345678 + instanceNumber,
+    INSTANCE_NUMBER: instanceNumber,
   });
 });
 
@@ -122,7 +123,7 @@ execPar['on-peer-start'] = function(cb){
     var otherInstancesEnv = _(instancesEnv).without(instanceEnv);
     async.each(otherInstancesEnv, function(otherInstanceEnv, cb){
       var env = _.extend({}, instanceEnv);
-      otherInstanceEnv.forEach(function(value, key){
+      _(otherInstanceEnv).forEach(function(value, key){
         env['PEER_' + key] = value;
       });
       megagear.exec(env, 'on-peer-start', cb)
@@ -139,8 +140,8 @@ async.series([
   execPar['populate-repo-dir'],
   execPar['pre-start'],
   execPar['start-background'],
+  execPar['post-start'],
   execPar['on-peer-start'],
-  execPar['post-start']
 ], function(err){
   if(err) throw err;
   console.log('started');
