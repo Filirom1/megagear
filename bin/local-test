@@ -51,14 +51,21 @@ var execPar = {};
   ['pre-', '', 'post-'].forEach(function(prefix){
     // if scrip is not defined, default to noop
     if(!megagear.metadata.scripts[prefix + action]){
-      console.log(prefix + action, 'script not definied. Will be skipped');
+      console.log(prefix + action, 'will be skipped, script not defined');
       execOnce[prefix + action] = function(cb){ cb(); }
       execPar[prefix + action] = function(cb){ cb(); }
       return 
     }
+
+    if(action == 'admindo' && fs.readdirSync(clusterEnv.ADMIN_DIR).length > 0){
+      console.log(prefix + action, 'will be skipped,', clusterEnv.ADMIN_DIR, 'not empty');
+      execOnce[prefix + action] = function(cb){ cb(); }
+      return;
+    }
+
     execOnce[prefix + action] = function(cb){
       console.log('exec once', prefix + action);
-      megagear.exec(clusterEnv, prefix + action, cb)
+      megagear.exec(instancesEnv[0], prefix + action, cb)
     }
     execPar[prefix + action] = function(cb){
       async.each(instancesEnv, function(env, cb){
