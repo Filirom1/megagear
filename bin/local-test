@@ -65,7 +65,7 @@ var execPar = {};
 
     execOnce[prefix + action] = function(cb){
       console.log('exec once', prefix + action);
-      megagear.exec(instancesEnv[0], prefix + action, cb)
+      megagear.exec(clusterEnv, prefix + action, cb)
     }
     execPar[prefix + action] = function(cb){
       async.each(instancesEnv, function(env, cb){

@@ -4,9 +4,44 @@ How to use
 
     git clone https://github.com/Filirom1/megagear.git
     cd megagear
+
+## Simple usage
+
+You will use `bin/local-test`, it's simplier than using `bin/control` directly.
+
+First create a temporary directory
+
+    mkdir /tmp/megagear
+
+### NodeJs
+
+Create a sample nodejs project
+
+    sudo npm i -g express
+    mkdir ~/express
+    cd ~/express
+    express
+    cd -
+
+Download nodeJs v0.10.0, build the project and launch the web server.
+
+    export VERSION=0.10.0
+    rm -fr /tmp/megagear/instance0 && cp -r ~/express/ /tmp/megagear/repo &&  ./bin/local-test metadatas/nodejs.yml 
+
+### MongoDB 
+
+Download mongodb 2.4.5, start 3 instances and configure them as a replicaset
+
+    export VERSION=2.4.5
+    rm -fr /tmp/megagear/instance* &&  ./bin/local-test metadatas/mongodb.yml
+
+## Advanced usage
+
+    cd megagear
     export PATH=`pwd`/bin:$PATH
 
-## NodeJs
+### NodeJs
+
 
 Create dir structure
 
@@ -30,7 +65,8 @@ Create a dummy nodejs app
     ./bin/control start metadatas/nodejs.yml &
     ./bin/control status metadatas/nodejs.yml
 
-# MongoDB
+
+### MongoDB
 
 Create dir structure
 

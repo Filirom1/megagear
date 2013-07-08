@@ -75,7 +75,7 @@ Megagear.prototype.exec = function(env, action, cb){
 Megagear.prototype.missingParams = function(params){
   var diff = _.difference(this.metadata.params, Object.keys(params));
   if(diff.length){
-    return new Error('Please set the following params [' + diff.join(', ')+ ']');
+    console.log('WARN: Please set the following params [' + diff.join(', ')+ ']');
   }
 };
 

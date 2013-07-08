@@ -87,6 +87,7 @@ scripts:
 
   on-peer-start: |
     [[ "${IS_MASTER}" != true ]] && exit 0
+    # TODO try again if fails
     mongo --host ${IP} --port ${PORT} admin --username ${USERNAME} --password ${PASSWORD} << EOF
       rs.add("${PEER_IP}:${PEER_PORT}");
       exit
@@ -94,6 +95,7 @@ scripts:
 
   on-peer-stop: |
     [[ "${IS_MASTER}" != true ]] && exit 0
+    # TODO try again if fails
     mongo --host ${IP} --port ${PORT} admin --username ${USERNAME} --password ${PASSWORD} << EOF
       rs.remove("${PEER_IP}:${PEER_PORT}");
       exit
