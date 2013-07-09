@@ -87,18 +87,26 @@ scripts:
 
   on-peer-start: |
     [[ "${IS_MASTER}" != true ]] && exit 0
-    # TODO try again if fails
+    # try again if it fails (concurrent rs updates fails)
     mongo --host ${IP} --port ${PORT} admin --username ${USERNAME} --password ${PASSWORD} << EOF
-      rs.add("${PEER_IP}:${PEER_PORT}");
-      exit
+      var inc = 0;
+      while(inc < 5){
+        inc++;
+        rs.add("${PEER_IP}:${PEER_PORT}").ok && quit(0);
+      }
+      quit(1)
     EOF
 
   on-peer-stop: |
     [[ "${IS_MASTER}" != true ]] && exit 0
-    # TODO try again if fails
+    # try again if it fails (concurrent rs updates fails)
     mongo --host ${IP} --port ${PORT} admin --username ${USERNAME} --password ${PASSWORD} << EOF
-      rs.remove("${PEER_IP}:${PEER_PORT}");
-      exit
+      var inc = 0;
+      while(inc < 5){
+        inc++;
+        rs.remove("${PEER_IP}:${PEER_PORT}").ok && quit(0);
+      }
+      quit(1)
     EOF
 
   status: |
